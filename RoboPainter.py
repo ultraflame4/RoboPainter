@@ -20,6 +20,7 @@ class PixelFlattener:
     @staticmethod
     def cleanUp(im:np.ndarray):
         # Removes random lonely pixels etc.
+        total_pixelCount = (PixelFlattener.SurroundRadius*2+1)**2
         height, width, depth = im.shape
 
         bufferIm = im.copy()
@@ -34,13 +35,17 @@ class PixelFlattener:
         for y in tqdm(range(height)):
             for x in range(width):
                 center = im[y, x]
-                surroundingPixVals = [getPix(center,x+i-PixelFlattener.SurroundRadius,y+j-PixelFlattener.SurroundRadius) for i in range(1+PixelFlattener.SurroundRadius*2) for j in range(1+PixelFlattener.SurroundRadius*2)]
-                same_as_center = [(i==center).all() for i in surroundingPixVals]
 
-                percentage = sum(same_as_center)/9
+                sp = im[y-PixelFlattener.SurroundRadius:y+PixelFlattener.SurroundRadius+1,x-PixelFlattener.SurroundRadius:x+PixelFlattener.SurroundRadius+1]
+                surroundingPixVals = sp.reshape(-1,sp.shape[-1])
 
+
+                if len(surroundingPixVals) < 1:
+                    bufferIm[y, x] = center
+                    continue
+
+                percentage = np.mean(surroundingPixVals == np.full(surroundingPixVals.shape, center))
                 if percentage < .5:
-
                     bufferIm[y, x] = stats.mode(surroundingPixVals)[0]
 
         return bufferIm
@@ -69,7 +74,7 @@ class PixelFlattener:
 
                 color_diff = math.dist(right,center)
                 if color_diff < PixelFlattener.MaxColorDiff:
-                    avg = right/2+center/2
+                    avg = (right/2+center/2)
 
                     # check for other similar averages before using new average
                     avgDiffs = [math.dist(avg,a) for a in lastAverages]
@@ -232,7 +237,7 @@ def combineFiles(name1,name2,name3):
 
 
 
-def paint(input_filepath,out_path="./out.svg",dump_bands=False,delete_build=True,fMaxColorDiff=50,fMaxAvgDiff=50,fAvgRadius=2,borderSize=3):
+def paint(input_filepath,out_path="./out.svg",dump_bands=False,delete_build=True,fMaxColorDiff=50,fMaxAvgDiff=50,fAvgRadius=2,borderSize=5):
     """
     :param input_filepath: Input path for the file to convert
 
