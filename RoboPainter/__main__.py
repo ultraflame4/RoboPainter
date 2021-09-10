@@ -10,6 +10,9 @@ from scipy import stats
 import re
 from tqdm import tqdm
 import fire
+from .imagetiles import *
+
+
 
 class PixelFlattener:
 
@@ -24,14 +27,7 @@ class PixelFlattener:
         height, width, depth = im.shape
 
         bufferIm = im.copy()
-
-        def getPix(center,x,y):
-            if x < 0 or y<0 or x>= width-1 or y>= height-1:
-                return center
-            else:
-                return im[y,x]
-
-
+        print("\nCleaning up...")
         for y in tqdm(range(height)):
             for x in range(width):
                 center = im[y, x]
@@ -52,41 +48,52 @@ class PixelFlattener:
 
 
     @staticmethod
-    def flatten(im:np.ndarray):
+    def flatten(img:np.ndarray,tl):
         # rounds pixels values in an area to an average value. like image compression
-        height, width, depth = im.shape
+        height, width, depth = img.shape
 
-        bufferIm = im.copy()
+        bufferIm = img.copy()
 
 
         lastAverages = [[0,0,0]]
 
-        for y in tqdm(range(height)):
-            for x in range(width):
 
-                center = im[y,x]
+        def worker(im:np.ndarray, offsetX, offsetY,tileLength,pbar:tqdm):
+            for y in range(tileLength):
+                oy = y + offsetY
+                for x in range(tileLength):
+                    ox=x+offsetX
 
-                if x >= width-1:
-                    right=center
-                else:
-                    right = im[y,x+1]
+                    if ox >= im.shape[1] or oy >= im.shape[0]:
+                        pbar.update(1)
+                        continue
+
+                    center = im[oy,ox]
+
+                    if ox >= width-1:
+                        right=center
+                    else:
+                        right = im[oy,ox+1]
 
 
-                color_diff = math.dist(right,center)
-                if color_diff < PixelFlattener.MaxColorDiff:
-                    avg = (right/2+center/2)
+                    color_diff = math.dist(right,center)
+                    if color_diff < PixelFlattener.MaxColorDiff:
+                        avg = (right/2+center/2)
 
-                    # check for other similar averages before using new average
-                    avgDiffs = [math.dist(avg,a) for a in lastAverages]
-                    bestDist = min(avgDiffs)
-                    if bestDist < PixelFlattener.MaxAvgDiff:
-                        bestMatch = lastAverages[avgDiffs.index(bestDist)]
-                        bufferIm[y, x] = bestMatch
+                        # check for other similar averages before using new average
+                        avgDiffs = [math.dist(avg,a) for a in lastAverages]
+                        bestDist = min(avgDiffs)
+                        if bestDist < PixelFlattener.MaxAvgDiff:
+                            bestMatch = lastAverages[avgDiffs.index(bestDist)]
+                            bufferIm[oy, ox] = bestMatch
 
-                    else: # if bestMatch still over threshold, create new average
-                        lastAverages.append(avg)
-                        bufferIm[y, x] = avg
+                        else: # if bestMatch still over threshold, create new average
+                            lastAverages.append(avg)
+                            bufferIm[oy, ox] = avg
 
+                    pbar.update(1)
+
+        splitimager(img,worker,tl)
 
         return bufferIm
 
@@ -237,7 +244,7 @@ def combineFiles(name1,name2,name3,out):
 
 
 
-def paint(input_filepath,out_path="./out.svg",dump_bands=False,delete_build=True,fMaxColorDiff=50,fMaxAvgDiff=50,fAvgRadius=2,borderSize=5):
+def paint(input_filepath,out_path="./out.svg",dump_bands=False,delete_build=True,fMaxColorDiff=50,fMaxAvgDiff=50,fAvgRadius=2,borderSize=5,tileLength=300):
     """
     :param input_filepath: Input path for the file to convert
 
@@ -256,20 +263,24 @@ def paint(input_filepath,out_path="./out.svg",dump_bands=False,delete_build=True
     :param borderSize: Border size of each group path
     :return:
     """
+    print("Robopainter 10")
     FINAL_OUTPUT_PATH = out_path
     PixelFlattener.MaxColorDiff=fMaxColorDiff
     PixelFlattener.MaxAvgDiff=fMaxAvgDiff
     PixelFlattener.SurroundRadius=fAvgRadius
     PotraceConverter.strokeWidth=borderSize
 
+    if not os.path.exists("./build"):
+        os.mkdir("./build")
+
+
     print("Reading image...")
     image = cv2.imread(input_filepath)
     print("Beginning image preparations...")
-    flattened_im = PixelFlattener.flatten(image)
+    flattened_im = PixelFlattener.flatten(image,tileLength)
     cleaned_im=PixelFlattener.cleanUp(flattened_im)
     print("Finished image preparations.")
-    if not os.path.exists("./build"):
-        os.mkdir("./build")
+
 
     if (dump_bands):
         print("Dumping image bands...")
