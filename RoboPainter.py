@@ -2,7 +2,7 @@
 
 import math
 import os
-
+import shutil
 import bs4
 import cv2
 import numpy as np
@@ -110,6 +110,7 @@ class PixelSeperator:
     # Seprates each pixel value into its own image and saves them
     @staticmethod
     def seperate(name:str,im:np.ndarray):
+        print(f"Creating svg files for each pixel variant for band: {name}...")
         build_dir = BuildPaths.getPixelSeperatorBuildDir(name)
 
         print("Clearing existing files...")
@@ -135,7 +136,7 @@ class PixelSeperator:
 class PotraceConverter:
     Path = "potrace" # potrace is in path
     flags = "-b svg"
-
+    strokeWidth=2
     @staticmethod
     def convert(filepath,outpath):
         return os.system(f"{PotraceConverter.Path} {filepath} -o {outpath} {PotraceConverter.flags}")
@@ -155,6 +156,7 @@ class PotraceConverter:
 
     @staticmethod
     def stackFiles(name,band):
+        print(f"Stacking pixel variants svg files for band: {name}...")
         build_path = BuildPaths.getPotraceBuildDir(name)
         c=[0,0,0]
         c[band]=1
@@ -177,7 +179,7 @@ class PotraceConverter:
                         color_string = f"rgb({c[2]*color_},{c[1]*color_},{c[0]*color_})"
                         t["fill"]=color_string
                         t["stroke"] = color_string
-                        t["stroke-width"] = "10"
+                        t["stroke-width"] = str(PotraceConverter.strokeWidth)
 
                         baseSoup.svg.append(t)
 
@@ -187,13 +189,13 @@ class PotraceConverter:
 
 
 def convSepStack(name,img,band):
-    print("Working on",name,"...")
+    print("-Working on",name,"...-")
     im=img[:,:,band]
     PixelSeperator.seperate(name,im)
     PotraceConverter.convertAll(name)
 
     PotraceConverter.stackFiles(name,band)
-
+    print("-Finised",name,"...-")
 
 def resize(scale_percent:int,img:np.ndarray):
     width = int(img.shape[1] * scale_percent / 100)
@@ -230,9 +232,15 @@ def combineFiles(name1,name2,name3):
 
 
 
-def paint(input_filepath,dump_bands=False):
+def paint(input_filepath,out_path="./out.svg",dump_bands=False,delete_build=True,fMaxColorDiff=50,fMaxAvgDiff=50,fAvgRadius=2,borderSize=2):
+    FINAL_OUTPUT_PATH = out_path
+    PixelFlattener.MaxColorDiff=fMaxColorDiff
+    PixelFlattener.MaxAvgDiff=fMaxAvgDiff
+    PixelFlattener.SurroundRadius=fAvgRadius
+    PotraceConverter.strokeWidth=borderSize
+
     print("Reading image...")
-    image = cv2.imread("./assets/blackhole.png")
+    image = cv2.imread(input_filepath)
     print("Beginning image preparations...")
     flattened_im = PixelFlattener.flatten(image)
     cleaned_im=PixelFlattener.cleanUp(flattened_im)
@@ -247,31 +255,17 @@ def paint(input_filepath,dump_bands=False):
         cv2.imwrite("./build/red.bmp",cleaned_im[:,:,2])
 
     print("Sending image channels to potrace...")
+    convSepStack("blue",cleaned_im,0)
+    convSepStack("green",cleaned_im,1)
+    convSepStack("red",cleaned_im,2)
+
+    print("Merging resulting svg files...")
+    combineFiles("red","green","blue")
+    print(f"Finished merging, output file at {FINAL_OUTPUT_PATH}")
+    if delete_build:
+        print('Clean up: removing temporary working build directory..')
+        shutil.rmtree("./build")
+        print("Finished cleanup. Done!")
 
 if __name__ == "__main__":
     fire.Fire(paint)
-    # print("Preparing image...")
-    # image = cv2.imread("./assets/blackhole.png")
-    # flattened_im = PixelFlattener.flatten(image)
-    # print("Flattening finished,cleaning up...")
-    # cleaned_im=PixelFlattener.cleanUp(flattened_im)
-    # print("Finished image preparations")
-    #
-    # if not os.path.exists("./build"):
-    #     os.mkdir("./build")
-    #
-    # print("Dumping image channels")
-    #
-    # cv2.imwrite("./build/blue.bmp",cleaned_im[:,:,0])
-    # cv2.imwrite("./build/green.bmp",cleaned_im[:,:,1])
-    # cv2.imwrite("./build/red.bmp",cleaned_im[:,:,2])
-    #
-    # print("Sending image channels to potrace...")
-    #
-    # convSepStack("blue",cleaned_im,0)
-    # convSepStack("green",cleaned_im,1)
-    # convSepStack("red",cleaned_im,2)
-    #
-    # print("Merging image channels...")
-    # combineFiles("red","green","blue")
-    # print("Done!")
