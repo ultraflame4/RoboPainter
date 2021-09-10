@@ -23,3 +23,4 @@ This program uses a turns a reference image into a svg image file.
 - tqdm
 - numpy
 - fire
+- lxml
