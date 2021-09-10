@@ -210,9 +210,9 @@ def resize(scale_percent:int,img:np.ndarray):
 
 
 
-FINAL_OUTPUT_PATH = "./out.svg"
 
-def combineFiles(name1,name2,name3):
+
+def combineFiles(name1,name2,name3,out):
     with open(f"{BuildPaths.getPotraceBuildDir(name1)}/final.svg","r") as f:
         name1_soup = bs4.BeautifulSoup(f.read(),"xml")
         with open(f"{BuildPaths.getPotraceBuildDir(name2)}/final.svg", "r") as f2:
@@ -230,10 +230,10 @@ def combineFiles(name1,name2,name3):
         styleTag = name1_soup.new_tag("style")
         styleTag.string="path,g { mix-blend-mode: screen; }"
         name1_soup.svg.insert(0,styleTag)
-        outFilePath = FINAL_OUTPUT_PATH
-        with open(outFilePath, "w") as ff:
+
+        with open(out, "w") as ff:
             ff.write(str(name1_soup.prettify()))
-            print("Finished writing to file at",outFilePath)
+            print("Finished writing to file at",out)
 
 
 
@@ -283,7 +283,7 @@ def paint(input_filepath,out_path="./out.svg",dump_bands=False,delete_build=True
     convSepStack("red",cleaned_im,2)
 
     print("Merging resulting svg files...")
-    combineFiles("red","green","blue")
+    combineFiles("red","green","blue",FINAL_OUTPUT_PATH)
     print(f"Finished merging, output file at {FINAL_OUTPUT_PATH}")
     if delete_build:
         print('Clean up: removing temporary working build directory..')
