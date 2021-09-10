@@ -210,7 +210,7 @@ def resize(scale_percent:int,img:np.ndarray):
 
 
 
-FINAL_OUTPUT_PATH = "./out.svg"
+FINAL_OUTPUT_PATH = "../out.svg"
 
 def combineFiles(name1,name2,name3):
     with open(f"{BuildPaths.getPotraceBuildDir(name1)}/final.svg","r") as f:
