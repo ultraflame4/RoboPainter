@@ -232,7 +232,25 @@ def combineFiles(name1,name2,name3):
 
 
 
-def paint(input_filepath,out_path="./out.svg",dump_bands=False,delete_build=True,fMaxColorDiff=50,fMaxAvgDiff=50,fAvgRadius=2,borderSize=2):
+def paint(input_filepath,out_path="./out.svg",dump_bands=False,delete_build=True,fMaxColorDiff=50,fMaxAvgDiff=50,fAvgRadius=2,borderSize=3):
+    """
+    :param input_filepath: Input path for the file to convert
+
+    :param out_path: Output path for the output file
+
+    :param dump_bands: Debug option True/False dumps the rgb bands of image after image preparations
+
+    :param delete_build: Deletes the temporary automatically created build directory that contains files created and used by the program.
+
+    :param fMaxColorDiff: Image preparation option. Maximum difference between the orignal colors before it cannot be assumed and averaged as the same color.
+
+    :param fMaxAvgDiff: Image preparation option. Maximum difference between the new average color and prexisting averages before using new average
+
+    :param fAvgRadius: Image preparation option. Search radius for caculating average
+
+    :param borderSize: Border size of each group path
+    :return:
+    """
     FINAL_OUTPUT_PATH = out_path
     PixelFlattener.MaxColorDiff=fMaxColorDiff
     PixelFlattener.MaxAvgDiff=fMaxAvgDiff
