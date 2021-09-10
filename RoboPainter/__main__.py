@@ -125,12 +125,11 @@ class PixelSeperator:
 
         all_pix_vals = np.unique(im)
         print("Number of pixels variants: ",len(all_pix_vals))
-
-        for variant in all_pix_vals:
+        print("Generating variant files for band:",name)
+        for variant in tqdm(all_pix_vals):
             locations = np.where(im == variant)
             if len(locations[0]) < 2:
                 continue
-
             variantIm = np.full(im.shape,255,im.dtype)
             for yIndex,yPosition in enumerate(locations[0]):
                 variantIm[yPosition,locations[1][yIndex]]=0
@@ -155,7 +154,8 @@ class PotraceConverter:
         for file in os.listdir(build_path):
             os.remove(f"{build_path}/{file}")
 
-        for file in os.listdir(src_path):
+        print("Potrace converting for band",name)
+        for file in tqdm(os.listdir(src_path)):
             PotraceConverter.convert(f"{src_path}/{file}",f"{build_path}/{file}.svg")
 
 
