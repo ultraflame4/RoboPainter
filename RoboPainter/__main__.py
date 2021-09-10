@@ -65,6 +65,7 @@ class PixelFlattener:
                     ox=x+offsetX
 
                     if ox >= im.shape[1] or oy >= im.shape[0]:
+                        pbar.update(1)
                         continue
 
                     center = im[oy,ox]
@@ -90,7 +91,7 @@ class PixelFlattener:
                             lastAverages.append(avg)
                             bufferIm[oy, ox] = avg
 
-                pbar.update(1)
+                    pbar.update(1)
 
         splitimager(img,worker,tl)
 

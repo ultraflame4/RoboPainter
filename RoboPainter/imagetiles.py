@@ -23,7 +23,7 @@ def splitimager(im: np.ndarray, callback: typing.Callable,tileLength = TileLengt
 
     noRows = math.ceil(im.shape[0] / tileLength)
     noColumns = math.ceil(im.shape[1] / tileLength)
-    total_ = TileLength*noRows*noColumns
+    total_ = TileLength**2*noRows*noColumns
     bar = tqdm(total=total_)
     print("Starting threads...")
     threads = [threading.Thread(target=callback, args=(im,c * TileLength,r * TileLength,TileLength,bar))
